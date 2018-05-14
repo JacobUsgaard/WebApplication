@@ -1,0 +1,40 @@
+apply plugin: 'war' 
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// Spring
+	compile group: 'org.springframework', name: 'spring-core', version: '4.3.5.RELEASE'
+	compile group: 'org.springframework', name: 'spring-webmvc', version: '4.3.5.RELEASE'
+	compile group: 'org.springframework', name: 'spring-orm', version: '4.3.5.RELEASE'
+	
+	// Jackson Mapper
+	compile 'com.fasterxml.jackson.core:jackson-databind:2.7.5'
+	compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.5'
+	compile 'com.fasterxml.jackson.core:jackson-core:2.7.5'
+	
+	// Hibernate
+	compile group: 'org.hibernate', name: 'hibernate-core', version: '5.2.5.Final'
+	
+	// Apache Commons
+	compile group: 'commons-dbcp', name: 'commons-dbcp', version: '1.4'
+	
+	compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.8'
+	
+	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.22'
+	
+	// Java EE
+	providedCompile group: 'javax', name: 'javaee-api', version: '7.0'
+	
+	// Oracle
+	compile files('lib/ojdbc7.jar')
+	
+	// Test
+	testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+war {
+    from 'WebContent'
+}
