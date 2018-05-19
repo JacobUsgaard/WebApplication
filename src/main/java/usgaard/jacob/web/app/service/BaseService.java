@@ -1,6 +1,7 @@
 package usgaard.jacob.web.app.service;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -209,5 +210,15 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	 *         during validation.
 	 */
 	public abstract ServiceResponse<Entity> validate(@NotNull Entity entity);
+
+	/**
+	 * 
+	 * @param query
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	public ServiceResponseCollection<Entity> search(String query) throws UnsupportedEncodingException {
+		return new ServiceResponseCollection<>(baseRepository.search(query));
+	}
 
 }

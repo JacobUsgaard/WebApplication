@@ -1,10 +1,12 @@
 package usgaard.jacob.web.app.controller.data;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.util.Collection;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,5 +197,18 @@ public abstract class BaseDataController<Entity extends BaseEntity> implements S
 	public @ResponseBody ResponseEntity<ServiceResponseCollection<Entity>> saveOrUpdateAll(
 			@RequestBody Collection<Entity> entities) {
 		return getResponseEntity(baseService.saveOrUpdateAll(entities));
+	}
+
+	/**
+	 * 
+	 * @param httpServletRequest
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	@RequestMapping(method = { RequestMethod.GET }, path = { "search" }, produces = {
+			MediaType.APPLICATION_JSON_UTF8_VALUE, MediaType.APPLICATION_JSON_VALUE })
+	public @ResponseBody ResponseEntity<ServiceResponseCollection<Entity>> search(HttpServletRequest httpServletRequest)
+			throws UnsupportedEncodingException {
+		return getResponseEntity(baseService.search(httpServletRequest.getQueryString()));
 	}
 }

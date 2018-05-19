@@ -1,17 +1,38 @@
 package usgaard.jacob.web.app.repository;
 
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.PersistenceContext;
+import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Order;
+import javax.persistence.criteria.Path;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.sql.DataSource;
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Repository;
 
@@ -33,6 +54,21 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 	 */
 	private static final long serialVersionUID = 1L;
 
+	protected enum Operator {
+		EQUALS("\\="),
+		GREATER_THAN("\\>"),
+		GREATER_THAN_OR_EQUAL("\\>\\="),
+		LESS_THAN("\\<"),
+		LESS_THAN_OR_EQUAL("\\<\\="),
+		LIKE("\\=\\*");
+
+		private Pattern pattern;
+
+		private Operator(String regex) {
+			pattern = Pattern.compile(regex);
+		}
+	}
+
 	/**
 	 * The logger created for each implementation class.
 	 */
@@ -52,9 +88,17 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 	protected EntityManager entityManager;
 
 	/**
+	 * 
+	 */
+	protected final BeanInfo beanInfo;
+
+	protected final LinkedList<Field> entityFields;
+
+	/**
 	 * Creates BaseRepository.
 	 * 
-	 * Instantiates logger for Entity and resolves generic type specified.
+	 * Instantiates logger for Entity and resolves generic type
+	 * specified.currentLength
 	 * 
 	 * @throws UnsupportedOperationException
 	 *             If the generic type is not specified.
@@ -67,6 +111,18 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 		if (entityClass == null) {
 			throw new UnsupportedOperationException(
 					"Generic type cannot be null for BaseRepository implementation: " + getClass());
+		}
+
+		try {
+			beanInfo = Introspector.getBeanInfo(entityClass);
+		} catch (IntrospectionException introspectionException) {
+			throw new BeanCreationException(getClass().getSimpleName(), "Unable to get Bean Info",
+					introspectionException);
+		}
+
+		entityFields = new LinkedList<>();
+		for (Class<?> c = entityClass; c != null && c.equals(Object.class); c = c.getSuperclass()) {
+			entityFields.addAll(Arrays.asList(c.getDeclaredFields()));
 		}
 	}
 
@@ -162,5 +218,152 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 		for (Entity entity : entities) {
 			saveOrUpdate(entity);
 		}
+	}
+
+	public List<Entity> search(String[] columns, Object[] values) {
+		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaQuery<Entity> criteriaQuery = criteriaBuilder.createQuery(entityClass);
+		Root<Entity> root = criteriaQuery.from(entityClass);
+		if (columns == null || values == null || columns.length != columns.length) {
+			return entityManager.createQuery(criteriaQuery.select(root)).getResultList();
+		}
+
+		ArrayList<Predicate> predicates = new ArrayList<>(columns.length);
+
+		columnLoop: for (int i = 0; i < columns.length; i++) {
+			String columnName = columns[i];
+
+			for (Field field : entityFields) {
+				Column column = field.getAnnotation(Column.class);
+				if (column == null) {
+					continue;
+				}
+
+				if (column.name().equalsIgnoreCase(columnName)) {
+					predicates.add(criteriaBuilder.equal(root.get(field.getName()), values[i]));
+					continue columnLoop;
+				}
+			}
+
+			throw new UnsupportedOperationException("Unable to match column name: " + columnName
+					+ " to any @Column field in Entity: " + entityClass.getName());
+		}
+
+		criteriaQuery.where(predicates.toArray(new Predicate[0]));
+		return entityManager.createQuery(criteriaQuery).getResultList();
+	}
+
+	public List<Entity> search(final String query) throws UnsupportedEncodingException {
+		logger.info("query: {}", query);
+		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaQuery<Entity> criteriaQuery = criteriaBuilder.createQuery(entityClass);
+		Root<Entity> root = criteriaQuery.from(entityClass);
+		criteriaQuery.select(root);
+
+		if (query != null) {
+			String decodedQuery = URLDecoder.decode(query, StandardCharsets.UTF_8.name());
+			logger.info("decoded query: {}", decodedQuery);
+			String[] nameValuePairs = decodedQuery.split("\\&", -1);
+			logger.info("name value pairs: {}", nameValuePairs.length);
+
+			for (String nameValuePair : nameValuePairs) {
+				logger.info("NameValuePair: {}", nameValuePair);
+
+				int maxLength = -1, start = -1, end = -1;
+				Operator operatorMatch = null;
+				for (Operator operator : Operator.values()) {
+					Matcher matcher = operator.pattern.matcher(nameValuePair);
+
+					if (!matcher.find()) {
+						logger.info("operator {} does not match input string: {}", operator.name(), nameValuePair);
+						continue;
+					}
+
+					logger.info("operator {} matches NameValuePair", operator.name());
+					start = matcher.start();
+					end = matcher.end();
+					int currentLength = end - start;
+					if (maxLength < currentLength) {
+						maxLength = currentLength;
+						operatorMatch = operator;
+					}
+				}
+
+				if (operatorMatch == null) {
+					throw new UnsupportedOperationException("Unable to find operator for parameter: " + nameValuePair);
+				}
+
+				String name = nameValuePair.substring(0, start);
+				String value = nameValuePair.substring(end);
+
+				logger.info("parameter mapped: {}, value: {}, operator: {}", name, value, operatorMatch.name());
+
+				if (name.equalsIgnoreCase("order")) {
+					String[] orders = value.split(",");
+					logger.info("orders: {}", orders.length);
+					ArrayList<Order> orderList = new ArrayList<>(orders.length);
+					for (String order : orders) {
+						logger.info("order: {}", order);
+						String attributeName = order.substring(0, order.length() - 1);
+						if (order.endsWith("+")) {
+							orderList.add(criteriaBuilder.asc(root.get(attributeName)));
+						} else if (order.endsWith("-")) {
+							orderList.add(criteriaBuilder.desc(root.get(attributeName)));
+						} else {
+							throw new UnsupportedOperationException("Invalid order operation: " + order);
+						}
+					}
+
+					criteriaQuery.orderBy(orderList);
+					continue;
+				}
+
+				for (PropertyDescriptor propertyDescriptor : beanInfo.getPropertyDescriptors()) {
+					String propertyName = propertyDescriptor.getName();
+					logger.info("checking property: {}", propertyName);
+
+					if (propertyName.equalsIgnoreCase(name)) {
+
+						Path<Object> path = root.get(propertyName);
+						Predicate predicate;
+						switch (operatorMatch) {
+						case EQUALS:
+							predicate = criteriaBuilder.equal(path, value);
+							break;
+
+						case GREATER_THAN:
+							predicate = criteriaBuilder.greaterThan(path.as(String.class), value);
+							break;
+
+						case GREATER_THAN_OR_EQUAL:
+							predicate = criteriaBuilder.greaterThanOrEqualTo(path.as(String.class), value);
+							break;
+
+						case LIKE:
+							predicate = criteriaBuilder.like(
+									criteriaBuilder.lower(path.as(String.class)),
+									"%" + value.toLowerCase() + "%");
+							break;
+
+						case LESS_THAN:
+							predicate = criteriaBuilder.lessThan(path.as(String.class), value);
+							break;
+
+						case LESS_THAN_OR_EQUAL:
+							predicate = criteriaBuilder.lessThanOrEqualTo(path.as(String.class), value);
+							break;
+
+						default:
+							throw new UnsupportedOperationException(
+									"Invalid operation mapping: " + operatorMatch.name());
+						}
+
+						criteriaQuery.where(predicate);
+					}
+				}
+			}
+		}
+
+		return entityManager.createQuery(criteriaQuery).getResultList();
 	}
 }
