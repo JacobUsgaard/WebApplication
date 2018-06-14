@@ -209,7 +209,9 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	 * @return The response containing the entity and any errors that occurred
 	 *         during validation.
 	 */
-	public abstract ServiceResponse<Entity> validate(@NotNull Entity entity);
+	public ServiceResponse<Entity> validate(@NotNull Entity entity) {
+		return new ServiceResponse<>(entity);
+	}
 
 	/**
 	 * 

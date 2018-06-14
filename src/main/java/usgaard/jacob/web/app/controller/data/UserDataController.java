@@ -12,7 +12,7 @@ import usgaard.jacob.web.app.entity.User;
  *
  */
 @RestController
-@RequestMapping("/data/user")
+@RequestMapping("user")
 public class UserDataController extends BaseDataController<User> {
 
 	/**

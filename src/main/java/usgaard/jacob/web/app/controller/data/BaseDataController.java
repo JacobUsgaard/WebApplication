@@ -38,6 +38,7 @@ import usgaard.jacob.web.app.service.response.ServiceResponseCollection;
  * @param <Entity>
  */
 @RestController
+@RequestMapping("data")
 public abstract class BaseDataController<Entity extends BaseEntity> implements Serializable {
 
 	/**
