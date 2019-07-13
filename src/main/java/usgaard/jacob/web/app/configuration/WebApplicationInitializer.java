@@ -43,7 +43,7 @@ public class WebApplicationInitializer implements org.springframework.web.WebApp
 		dispatcher.addMapping("/app/*");
 
 		dispatcher.setServletSecurity(
-				new ServletSecurityElement(new HttpConstraintElement(TransportGuarantee.CONFIDENTIAL)));
+				new ServletSecurityElement(new HttpConstraintElement(TransportGuarantee.NONE)));
 
 		dispatcher.setAsyncSupported(true);
 		String tmpDirectory = System.getProperty("java.io.tmp");
