@@ -9,7 +9,6 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Service;
@@ -56,8 +55,7 @@ public abstract class BaseService<Entity extends BaseEntity> {
 
 		entityClass = (Class<Entity>) GenericTypeResolver.resolveTypeArgument(getClass(), BaseService.class);
 		if (entityClass == null) {
-			throw new BeanCreationException(
-					"Generic type cannot be null for BaseRepository implementation: " + getClass());
+			throw new UnsupportedOperationException(String.format("Generic type cannot be null for %s implementation: %s", BaseService.class, getClass()));
 		}
 	}
 

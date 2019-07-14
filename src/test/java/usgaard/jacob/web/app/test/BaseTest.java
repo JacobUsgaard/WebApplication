@@ -40,7 +40,7 @@ public abstract class BaseTest<Entity extends BaseEntity> {
 
 		entityClass = (Class<Entity>) GenericTypeResolver.resolveTypeArgument(getClass(), BaseTest.class);
 		if (entityClass == null) {
-			throw new UnsupportedOperationException("Generic type cannot be null for BaseTest implementation: " + getClass());
+			throw new UnsupportedOperationException(String.format("Generic type cannot be null for %s implementation: %s", BaseTest.class, getClass()));
 		}
 	}
 

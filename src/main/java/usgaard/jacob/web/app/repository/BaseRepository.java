@@ -100,7 +100,7 @@ public abstract class BaseRepository<Entity extends BaseEntity> {
 
 		entityClass = (Class<Entity>) GenericTypeResolver.resolveTypeArgument(getClass(), BaseRepository.class);
 		if (entityClass == null) {
-			throw new UnsupportedOperationException("Generic type cannot be null for BaseRepository implementation: " + getClass());
+			throw new UnsupportedOperationException(String.format("Generic type cannot be null for %s implementation: %s", BaseRepository.class, getClass()));
 		}
 
 		try {
