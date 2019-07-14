@@ -1,8 +1,6 @@
 package usgaard.jacob.web.app.service.response;
 
-import usgaard.jacob.web.app.entity.BaseEntity;
-
-public class ServiceError<Entity extends BaseEntity> {
+public class ServiceError {
 	public static final String ERROR_MESSAGE_EMPTY = "This field cannot be empty.";
 
 	private String errorMessage;

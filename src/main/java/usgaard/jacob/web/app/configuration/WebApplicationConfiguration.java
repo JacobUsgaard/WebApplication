@@ -32,15 +32,12 @@ import usgaard.jacob.web.app.service.BaseService;
  */
 
 @ComponentScan(basePackageClasses = { BaseController.class, BaseDataController.class, BaseEntity.class,
-		BaseFilter.class, BaseRepository.class, BaseService.class })
+		BaseFilter.class, BaseRepository.class, BaseService.class }, basePackages = {"usgaard.jacob"})
 @Configuration
 @ControllerAdvice(basePackageClasses = { BaseController.class, BaseDataController.class })
 @EnableTransactionManagement
 @EnableWebMvc
 public class WebApplicationConfiguration {
-
-	@Autowired
-	private DataSource dataSource;
 
 	/**
 	 * Creates the data source connecting to the oracle database.
@@ -52,23 +49,25 @@ public class WebApplicationConfiguration {
 		BasicDataSource basicDataSource = new BasicDataSource();
 		basicDataSource.setDriverClassName(OracleDriver.class.getName());
 		basicDataSource.setUrl("jdbc:oracle:thin:@192.168.1.28:1521:orcl");
-		basicDataSource.setUsername("event_tracker");
+		basicDataSource.setUsername("jacob");
 		basicDataSource.setPassword("Goose4523");
 		return basicDataSource;
 	}
 
 	/**
+	 * Creates the entity manager factory bean from the given data source.
 	 * 
-	 * 
-	 * @return
+	 * @param dataSource The data source bean, autowired to ensure the bean is
+	 *                   ready.
+	 * @return the entity manager factory bean
 	 */
 	@Bean
-	public LocalContainerEntityManagerFactoryBean localContainerEntityManagerFactoryBean() {
-		LocalContainerEntityManagerFactoryBean localContainerEntityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
-
+	public LocalContainerEntityManagerFactoryBean localContainerEntityManagerFactoryBean(
+			@Autowired DataSource dataSource) {
 		HibernateJpaVendorAdapter hibernateJpaVendorAdapter = new HibernateJpaVendorAdapter();
 		hibernateJpaVendorAdapter.setShowSql(false);
 
+		LocalContainerEntityManagerFactoryBean localContainerEntityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
 		localContainerEntityManagerFactoryBean.setJpaDialect(new HibernateJpaDialect());
 		localContainerEntityManagerFactoryBean.setJpaVendorAdapter(hibernateJpaVendorAdapter);
 		localContainerEntityManagerFactoryBean.setPackagesToScan(BaseEntity.class.getPackage().getName());
@@ -83,7 +82,8 @@ public class WebApplicationConfiguration {
 	 * @return The transaction manager.
 	 */
 	@Bean
-	public PlatformTransactionManager transactionManager() {
-		return new JpaTransactionManager(localContainerEntityManagerFactoryBean().getObject());
+	public PlatformTransactionManager transactionManager(
+			@Autowired LocalContainerEntityManagerFactoryBean localContainerEntityManagerFactoryBean) {
+		return new JpaTransactionManager(localContainerEntityManagerFactoryBean.getObject());
 	}
 }

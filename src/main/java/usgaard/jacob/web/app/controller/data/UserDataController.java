@@ -7,17 +7,18 @@ import usgaard.jacob.web.app.entity.User;
 
 /**
  * Rest controller for {@link User} data.
- * 
- * @author Jacob Usgaard
- *
  */
 @RestController
-@RequestMapping("user")
-public class UserDataController extends BaseDataController<User> {
+@RequestMapping(UserDataController.REQUEST_MAPPING)
+public class UserDataController
+		extends BaseDataController<User>
+		implements FindByIdDataController<User>, DeleteDataController<User>, DeleteAllDataController<User>, DeleteByIdDataController<User>, SaveOrUpdateDataController<User>, SaveOrUpdateAllDataController<User> {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+	public static final String REQUEST_MAPPING = "/user";
+
+	@Override
+	public String getRequestMapping() {
+		return REQUEST_MAPPING;
+	}
 
 }

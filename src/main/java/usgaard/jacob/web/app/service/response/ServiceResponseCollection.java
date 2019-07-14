@@ -4,20 +4,19 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import usgaard.jacob.web.app.entity.BaseEntity;
-
 /**
  * 
  * @author Jacob Usgaard
  *
- * @param <Entity>
+ * @param <T>
  */
-public class ServiceResponseCollection<Entity extends BaseEntity> {
-	protected final Collection<Entity> entities;
+public class ServiceResponseCollection<T> extends ServiceResponse<Collection<T>> {
+	protected final Collection<T> entities;
 
-	protected final Collection<ServiceError<Entity>> serviceErrors;
+	protected final Collection<ServiceError> serviceErrors;
 
-	public ServiceResponseCollection(Collection<Entity> entities, Collection<ServiceError<Entity>> serviceErrors) {
+	public ServiceResponseCollection(Collection<T> entities, Collection<ServiceError> serviceErrors) {
+		super(entities);
 		this.entities = new LinkedList<>(entities);
 
 		if (serviceErrors == null) {
@@ -27,27 +26,27 @@ public class ServiceResponseCollection<Entity extends BaseEntity> {
 		}
 	}
 
-	public ServiceResponseCollection(Collection<Entity> entities) {
-		this(entities, (Collection<ServiceError<Entity>>) null);
+	public ServiceResponseCollection(Collection<T> entities) {
+		this(entities, (Collection<ServiceError>) null);
 	}
 
-	public ServiceResponseCollection(Entity entity, ServiceError<Entity> serviceError) {
-		this(Arrays.asList(entity), Arrays.asList(serviceError));
+	public ServiceResponseCollection(T T, ServiceError serviceError) {
+		this(Arrays.asList(T), Arrays.asList(serviceError));
 	}
 
-	public ServiceResponseCollection(Collection<Entity> entities, ServiceError<Entity> serviceError) {
+	public ServiceResponseCollection(Collection<T> entities, ServiceError serviceError) {
 		this(entities, Arrays.asList(serviceError));
 	}
 
-	public ServiceResponseCollection(Entity entity, Collection<ServiceError<Entity>> serviceErrors) {
-		this(Arrays.asList(entity), serviceErrors);
+	public ServiceResponseCollection(T T, Collection<ServiceError> serviceErrors) {
+		this(Arrays.asList(T), serviceErrors);
 	}
 
-	public void addError(ServiceError<Entity> serviceError) {
+	public void addError(ServiceError serviceError) {
 		serviceErrors.add(serviceError);
 	}
 
-	public void addErrors(Collection<ServiceError<Entity>> serviceErrors) {
+	public void addErrors(Collection<ServiceError> serviceErrors) {
 		this.serviceErrors.addAll(serviceErrors);
 	}
 
@@ -55,11 +54,11 @@ public class ServiceResponseCollection<Entity extends BaseEntity> {
 		return !serviceErrors.isEmpty();
 	}
 
-	public Collection<Entity> getEntities() {
+	public Collection<T> getEntities() {
 		return new LinkedList<>(entities);
 	}
 
-	public Collection<ServiceError<Entity>> getServiceErrors() {
+	public Collection<ServiceError> getServiceErrors() {
 		return new LinkedList<>(serviceErrors);
 	}
 }

@@ -3,21 +3,17 @@ package usgaard.jacob.web.app.service.response;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import usgaard.jacob.web.app.entity.BaseEntity;
-
 /**
  * 
- * @author Jacob Usgaard
- *
- * @param <Entity>
+ * @param <T>
  */
-public class ServiceResponse<Entity extends BaseEntity> {
-	protected final Entity entity;
+public class ServiceResponse<T> {
+	protected final T data;
 
-	protected final Collection<ServiceError<Entity>> serviceErrors;
+	protected final Collection<ServiceError> serviceErrors;
 
-	public ServiceResponse(Entity entity, Collection<ServiceError<Entity>> serviceErrors) {
-		this.entity = entity;
+	public ServiceResponse(T data, Collection<ServiceError> serviceErrors) {
+		this.data = data;
 
 		if (serviceErrors == null) {
 			this.serviceErrors = new LinkedList<>();
@@ -26,19 +22,23 @@ public class ServiceResponse<Entity extends BaseEntity> {
 		}
 	}
 
-	public ServiceResponse(Entity entity) {
-		this(entity, null);
+	public ServiceResponse(T data) {
+		this(data, null);
+	}
+	
+	public ServiceResponse() {
+		this(null);
 	}
 
 	public void addServiceError(String propertyName, String errorMessage) {
-		serviceErrors.add(new ServiceError<>(propertyName, errorMessage));
+		serviceErrors.add(new ServiceError(propertyName, errorMessage));
 	}
 
-	public void addError(ServiceError<Entity> serviceError) {
+	public void addError(ServiceError serviceError) {
 		this.serviceErrors.add(serviceError);
 	}
 
-	public void addErrors(Collection<ServiceError<Entity>> serviceErrors) {
+	public void addErrors(Collection<ServiceError> serviceErrors) {
 		this.serviceErrors.addAll(serviceErrors);
 	}
 
@@ -46,11 +46,11 @@ public class ServiceResponse<Entity extends BaseEntity> {
 		return !serviceErrors.isEmpty();
 	}
 
-	public Entity getEntity() {
-		return entity;
+	public T getData() {
+		return data;
 	}
 
-	public Collection<ServiceError<Entity>> getServiceErrors() {
+	public Collection<ServiceError> getServiceErrors() {
 		return new LinkedList<>(serviceErrors);
 	}
 }

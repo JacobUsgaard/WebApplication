@@ -1,19 +1,16 @@
 package usgaard.jacob.web.app.service;
 
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import javax.inject.Inject;
 import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Service;
 
@@ -26,18 +23,10 @@ import usgaard.jacob.web.app.service.response.ServiceResponseCollection;
 /**
  * Base service for business validation.
  * 
- * @author Jacob Usgaard
- *
  * @param <Entity>
  */
-@Scope(proxyMode = ScopedProxyMode.INTERFACES)
 @Service
-public abstract class BaseService<Entity extends BaseEntity> implements Serializable {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+public abstract class BaseService<Entity extends BaseEntity> {
 
 	/**
 	 * The logger created for each implementation class.
@@ -53,7 +42,7 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	 * The repository for the generic type of entity specified at class
 	 * construction.
 	 */
-	@Inject
+	@Autowired
 	protected BaseRepository<Entity> baseRepository;
 
 	/**
@@ -75,8 +64,7 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	/**
 	 * Delete the specified entity.
 	 * 
-	 * @param entity
-	 *            The entity to be deleted.
+	 * @param entity The entity to be deleted.
 	 * @return The response containing the entity and any errors that occurred.
 	 */
 	public ServiceResponse<Entity> delete(@NotNull Entity entity) {
@@ -87,24 +75,22 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	/**
 	 * Convenience method to delete entity by id.
 	 * 
-	 * @param id
-	 *            The id of the entity to be deleted.
+	 * @param id The id of the entity to be deleted.
 	 * @return The response containing the entity and any errors that occurred.
 	 */
-	public ServiceResponse<Entity> delete(@NotNull Object id) {
+	public ServiceResponse<Entity> deleteById(@NotNull Object id) {
 		ServiceResponse<Entity> serviceResponse = findById(id);
 		if (serviceResponse.hasErrors()) {
 			return serviceResponse;
 		}
 
-		return delete(serviceResponse.getEntity());
+		return delete(serviceResponse.getData());
 	}
 
 	/**
 	 * Convenience method for deleting multiple entities.
 	 * 
-	 * @param entities
-	 *            The entities to be deleted.
+	 * @param entities The entities to be deleted.
 	 * @return The response containing the entities and any errors that occurred.
 	 */
 	public ServiceResponseCollection<Entity> deleteAll(@NotNull Collection<Entity> entities) {
@@ -113,19 +99,9 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	}
 
 	/**
-	 * Find all entities of this type.
-	 * 
-	 * @return The collection of entities found.
-	 */
-	public ServiceResponseCollection<Entity> findAll() {
-		return new ServiceResponseCollection<>(baseRepository.findAll());
-	}
-
-	/**
 	 * Find a single entity by its identifier.
 	 * 
-	 * @param id
-	 *            The id of the entity to be found.
+	 * @param id The id of the entity to be found.
 	 * @return The entity, null if it doesn't exist.
 	 * 
 	 * @see Id
@@ -137,8 +113,7 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	/**
 	 * Validates entity and calls {@link BaseRepository#saveOrUpdate(BaseEntity)}.
 	 * 
-	 * @param entity
-	 *            The entity to be synchronized.
+	 * @param entity The entity to be synchronized.
 	 * @return The response containing the entity and any errors that occurred
 	 *         during validation.
 	 * 
@@ -152,16 +127,13 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 			return serviceResponse;
 		}
 
-		baseRepository.saveOrUpdate(entity);
-
-		return new ServiceResponse<>(entity);
+		return new ServiceResponse<>(baseRepository.saveOrUpdate(entity));
 	}
 
 	/**
 	 * Convenience method for synchronizing multiple entities
 	 * 
-	 * @param entities
-	 *            The entities to be synchronized.
+	 * @param entities The entities to be synchronized.
 	 * @return The response containing the entities and any errors that occurred
 	 *         during validation.
 	 * 
@@ -175,21 +147,28 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 			return serviceResponseCollection;
 		}
 
-		baseRepository.saveOrUpdateAll(entities);
+		return new ServiceResponseCollection<>(baseRepository.saveOrUpdateAll(entities));
+	}
 
-		return new ServiceResponseCollection<>(entities);
+	/**
+	 * 
+	 * @param query
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	public ServiceResponseCollection<Entity> search(String query) throws UnsupportedEncodingException {
+		return new ServiceResponseCollection<>(baseRepository.search(query));
 	}
 
 	/**
 	 * Convenience method to validate multiple entities.
 	 * 
-	 * @param entities
-	 *            The entities to be validated.
+	 * @param entities The entities to be validated.
 	 * @return The response containing the entities and any errors that occurred
 	 *         during validation.
 	 */
 	public final ServiceResponseCollection<Entity> validate(@NotNull Collection<Entity> entities) {
-		LinkedList<ServiceError<Entity>> serviceErrors = new LinkedList<>();
+		LinkedList<ServiceError> serviceErrors = new LinkedList<>();
 		for (Entity entity : entities) {
 			ServiceResponse<Entity> serviceResponse = validate(entity);
 
@@ -204,23 +183,12 @@ public abstract class BaseService<Entity extends BaseEntity> implements Serializ
 	/**
 	 * Validate the entity using business rules.
 	 * 
-	 * @param entity
-	 *            The entity to be validated.
+	 * @param entity The entity to be validated.
 	 * @return The response containing the entity and any errors that occurred
 	 *         during validation.
 	 */
 	public ServiceResponse<Entity> validate(@NotNull Entity entity) {
 		return new ServiceResponse<>(entity);
-	}
-
-	/**
-	 * 
-	 * @param query
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	public ServiceResponseCollection<Entity> search(String query) throws UnsupportedEncodingException {
-		return new ServiceResponseCollection<>(baseRepository.search(query));
 	}
 
 }

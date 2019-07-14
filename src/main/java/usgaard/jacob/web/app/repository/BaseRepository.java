@@ -4,7 +4,6 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.URLDecoder;
@@ -42,17 +41,10 @@ import usgaard.jacob.web.app.entity.BaseEntity;
 /**
  * Base repository with common methods.
  * 
- * @author Jacob Usgaard
- *
  * @param <Entity>
  */
 @Repository
-public abstract class BaseRepository<Entity extends BaseEntity> implements Serializable {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+public abstract class BaseRepository<Entity extends BaseEntity> {
 
 	protected enum Operator {
 		EQUALS("\\="),
@@ -100,8 +92,7 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 	 * Instantiates logger for Entity and resolves generic type
 	 * specified.currentLength
 	 * 
-	 * @throws UnsupportedOperationException
-	 *             If the generic type is not specified.
+	 * @throws UnsupportedOperationException If the generic type is not specified.
 	 */
 	@SuppressWarnings("unchecked")
 	public BaseRepository() {
@@ -109,8 +100,7 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 
 		entityClass = (Class<Entity>) GenericTypeResolver.resolveTypeArgument(getClass(), BaseRepository.class);
 		if (entityClass == null) {
-			throw new UnsupportedOperationException(
-					"Generic type cannot be null for BaseRepository implementation: " + getClass());
+			throw new UnsupportedOperationException("Generic type cannot be null for BaseRepository implementation: " + getClass());
 		}
 
 		try {
@@ -129,27 +119,21 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 	/**
 	 * Remove entity from {@link DataSource} using {@link EntityManager}.
 	 * 
-	 * @param entity
-	 *            The entity to be deleted.
+	 * @param entity The entity to be deleted.
 	 */
 	public void delete(@NotNull Entity entity) {
 		if (entity == null) {
 			return;
 		}
 
-		logger.debug("deleting entity: {}", entity.toString());
-		if (entityManager.contains(entity)) {
-			entityManager.merge(entity);
-		}
-
-		entityManager.remove(entity);
+		logger.debug("deleting entity: {}", entity);
+		entityManager.remove(entityManager.contains(entity) ? entity : entityManager.merge(entity));
 	}
 
 	/**
 	 * Convenience method to delete multiple entities.
 	 * 
-	 * @param entities
-	 *            The entities to be deleted.
+	 * @param entities The entities to be deleted.
 	 */
 	public void deleteAll(@NotNull Collection<Entity> entities) {
 		if (entities == null || entities.isEmpty()) {
@@ -162,62 +146,46 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 	}
 
 	/**
-	 * Find all entities of this type.
-	 * 
-	 * @return The collection of entities found.
-	 */
-	public Collection<Entity> findAll() {
-		logger.debug("finding all entities");
-		CriteriaQuery<Entity> criteriaQuery = entityManager.getCriteriaBuilder().createQuery(entityClass);
-		criteriaQuery.select(criteriaQuery.from(entityClass));
-		return entityManager.createQuery(criteriaQuery).getResultList();
-	}
-
-	/**
 	 * Find a single entity by its identifier.
 	 * 
-	 * @param id
-	 *            The id of the entity to be found.
+	 * @param id The id of the entity to be found.
 	 * @return The entity, null if it doesn't exist.
 	 * 
 	 * @see Id
 	 */
 	public Entity findById(@NotNull Object id) {
-		logger.debug("find entity by id: {}", id.toString());
+		logger.info("find entity by id: {}", id);
 		return entityManager.find(entityClass, id);
 	}
 
 	/**
 	 * Synchronizes entity with {@link DataSource} using {@link EntityManager}.
 	 * 
-	 * @param entity
-	 *            The entity to be synchronized.
+	 * @param entity The entity to be synchronized.
 	 */
-	public void saveOrUpdate(@NotNull Entity entity) {
-		if (entity == null) {
-			return;
-		}
-
-		logger.debug("saving entity: {}", entity.toString());
-		entityManager.merge(entity);
+	public Entity saveOrUpdate(@NotNull Entity entity) {
+		logger.debug("saving entity: {}", entity);
+		return entityManager.merge(entity);
 	}
 
 	/**
 	 * Convenience method for synchronizing multiple entities.
 	 * 
-	 * @param entities
-	 *            The entities to be synchronized.
+	 * @param entities The entities to be synchronized.
 	 * 
 	 * @see #saveOrUpdate(BaseEntity)
 	 */
-	public void saveOrUpdateAll(@NotNull Collection<Entity> entities) {
+	public Collection<Entity> saveOrUpdateAll(@NotNull Collection<Entity> entities) {
+		ArrayList<Entity> list = new ArrayList<>(entities == null ? 0 : entities.size());
 		if (entities == null || entities.isEmpty()) {
-			return;
+			return list;
 		}
 
 		for (Entity entity : entities) {
-			saveOrUpdate(entity);
+			list.add(saveOrUpdate(entity));
 		}
+
+		return list;
 	}
 
 	public List<Entity> search(String[] columns, Object[] values) {
@@ -340,8 +308,7 @@ public abstract class BaseRepository<Entity extends BaseEntity> implements Seria
 							break;
 
 						case LIKE:
-							predicate = criteriaBuilder.like(
-									criteriaBuilder.lower(path.as(String.class)),
+							predicate = criteriaBuilder.like(criteriaBuilder.lower(path.as(String.class)),
 									"%" + value.toLowerCase() + "%");
 							break;
 

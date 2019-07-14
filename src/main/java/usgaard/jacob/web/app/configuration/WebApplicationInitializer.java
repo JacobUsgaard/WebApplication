@@ -37,42 +37,28 @@ public class WebApplicationInitializer implements org.springframework.web.WebApp
 
 		servletContext.addListener(new ContextLoaderListener(rootContext));
 
-		ServletRegistration.Dynamic dispatcher = servletContext
-				.addServlet("dispatcher", new DispatcherServlet(rootContext));
+		ServletRegistration.Dynamic dispatcher = servletContext.addServlet("dispatcher", new DispatcherServlet(rootContext));
 
 		dispatcher.addMapping("/app/*");
 
-		dispatcher.setServletSecurity(
-				new ServletSecurityElement(new HttpConstraintElement(TransportGuarantee.NONE)));
+		dispatcher.setServletSecurity(new ServletSecurityElement(new HttpConstraintElement(TransportGuarantee.NONE)));
 
 		dispatcher.setAsyncSupported(true);
-		String tmpDirectory = System.getProperty("java.io.tmp");
-		if (tmpDirectory == null || tmpDirectory.isEmpty()) {
-			tmpDirectory = "/tmp";
-		}
 
-		ClassPathScanningCandidateComponentProvider classPathScanningCandidateComponentProvider = new ClassPathScanningCandidateComponentProvider(
-				false);
+		ClassPathScanningCandidateComponentProvider classPathScanningCandidateComponentProvider = new ClassPathScanningCandidateComponentProvider(false);
 		classPathScanningCandidateComponentProvider.addIncludeFilter(new AnnotationTypeFilter(Component.class));
 
-		for (BeanDefinition beanDefinition : classPathScanningCandidateComponentProvider
-				.findCandidateComponents(BaseFilter.class.getPackage().getName())) {
+		for (BeanDefinition beanDefinition : classPathScanningCandidateComponentProvider.findCandidateComponents(BaseFilter.class.getPackage().getName())) {
 			try {
 				@SuppressWarnings("unchecked")
-				Class<? extends BaseFilter> filterClass = (Class<? extends BaseFilter>) Class
-						.forName(beanDefinition.getBeanClassName());
+				Class<? extends BaseFilter> filterClass = (Class<? extends BaseFilter>) Class.forName(beanDefinition.getBeanClassName());
 
-				if (Modifier.isAbstract(filterClass.getModifiers()) || Modifier.isInterface(filterClass.getModifiers())
-						|| !filterClass.isAssignableFrom(BaseFilter.class)) {
+				if (Modifier.isAbstract(filterClass.getModifiers()) || Modifier.isInterface(filterClass.getModifiers()) || !filterClass.isAssignableFrom(BaseFilter.class)) {
 					continue;
 				}
 
-				FilterRegistration.Dynamic filterRegistration = servletContext
-						.addFilter(filterClass.getSimpleName(), filterClass);
-				filterRegistration.addMappingForServletNames(
-						EnumSet.copyOf(Arrays.asList(DispatcherType.values())),
-						false,
-						"dispatcher");
+				FilterRegistration.Dynamic filterRegistration = servletContext.addFilter(filterClass.getSimpleName(), filterClass);
+				filterRegistration.addMappingForServletNames(EnumSet.copyOf(Arrays.asList(DispatcherType.values())), false, "dispatcher");
 
 				LOGGER.info("Adding filter {} to servlet {}", filterClass.getSimpleName(), "dispatcher");
 
@@ -83,7 +69,12 @@ public class WebApplicationInitializer implements org.springframework.web.WebApp
 			}
 		}
 
+		String tmpDirectory = System.getProperty("java.io.tmp");
+		if (tmpDirectory == null || tmpDirectory.isEmpty()) {
+			tmpDirectory = "/tmp";
+		}
 		LOGGER.info("Temporary directory for multipart file uploads: {}", tmpDirectory);
 		dispatcher.setMultipartConfig(new MultipartConfigElement(tmpDirectory, 100000l, 100000l, 10000));
 	}
+
 }
